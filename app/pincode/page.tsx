@@ -30,7 +30,7 @@ export default function PincodePage() {
         sessionStorage.getItem(SIGNUP_INFO_KEY) || "{}",
       );
 
-      const response = await fetchWithoutAuth("/auth/signup", {
+      const response = await fetchWithoutAuth("/signup", {
         method: "POST",
         body: JSON.stringify({
           ...signupInfo,

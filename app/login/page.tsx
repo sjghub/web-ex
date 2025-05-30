@@ -63,7 +63,7 @@ export default function LoginPage() {
 
     try {
       const body: SigninRequest = { username: userId, password };
-      const res = await fetchWithoutAuth("/auth/signin", {
+      const res = await fetchWithoutAuth("/signin", {
         method: "POST",
         body: JSON.stringify(body),
       });

@@ -114,7 +114,7 @@ export default function UserInfoPage() {
     }
 
     try {
-      const response = await fetchWithoutAuth("/auth/signup/verify", {
+      const response = await fetchWithoutAuth("/signup/verify", {
         method: "POST",
         body: JSON.stringify({
           username: formData.username,

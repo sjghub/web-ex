@@ -14,7 +14,7 @@ const COOKIE_NAMES = {
   refreshToken: "refreshToken",
 };
 
-const API_URL = "http://localhost:8080/api/auth/logout";
+const API_URL = "http://localhost:8080/auth/api/logout";
 
 const getCookie = (name: string): string | null => {
   const matches = document.cookie.match(

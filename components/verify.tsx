@@ -119,7 +119,7 @@ export default function VerifyIdentityPage({
 
         try {
           const response = await fetchWithoutAuth(
-            `/auth/verification?imp_uid=${rsp.imp_uid}`,
+            `/verification?imp_uid=${rsp.imp_uid}`,
           );
           const data = (await response.json()) as VerificationResponse;
 

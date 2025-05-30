@@ -77,7 +77,7 @@ export default function ChangePasswordPage() {
 
     try {
       const response = await fetchWithoutAuth(
-        `/auth/reset-password?username=${encodeURIComponent(username)}`,
+        `/reset-password?username=${encodeURIComponent(username)}`,
         {
           method: "POST",
           body: JSON.stringify({ password: newPassword }),

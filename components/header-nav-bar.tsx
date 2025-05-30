@@ -24,9 +24,14 @@ export function HeaderNavBar() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetchWithAuth("/auth/logout", {
-        method: "POST",
-      });
+      const response = await fetchWithAuth(
+        "/logout",
+        {
+          method: "POST",
+        },
+        "json",
+        "http://localhost:8080/auth/api",
+      );
 
       if (!response.ok) {
         const text = await response.text();

@@ -1,6 +1,7 @@
 import { refreshAccessToken } from "./auth";
 
-const API_URL = "http://localhost:8080/api";
+const API_URL_SERVICE = "http://localhost:8080/service/api";
+const API_URL_AUTH = "http://localhost:8080/auth/api";
 
 interface RequestOptions extends RequestInit {
   retryCount?: number;
@@ -10,6 +11,7 @@ export const fetchWithAuth = async (
   endpoint: string,
   options: RequestOptions = {},
   headerType: HeaderStrategy = "json", // 기본 json
+  baseUrl: string = API_URL_SERVICE,
 ): Promise<Response> => {
   const { retryCount = 0, ...fetchOptions } = options;
   const accessToken = document.cookie
@@ -25,7 +27,7 @@ export const fetchWithAuth = async (
     headers["Content-Type"] = "application/json";
   }
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
       ...fetchOptions,
       headers,
       credentials: "include", // 쿠키를 포함하여 요청
@@ -66,7 +68,8 @@ export const fetchWithoutAuth = async (
   };
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    console.log("API 요청:", `${API_URL_AUTH}${endpoint}`, options);
+    const response = await fetch(`${API_URL_AUTH}${endpoint}`, {
       ...options,
       headers,
       credentials: "include", // 쿠키를 포함하여 요청

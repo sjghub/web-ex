@@ -68,7 +68,7 @@ export default function PasswordFindForm() {
     setShouldRedirect(false);
 
     try {
-      const response = await fetchWithoutAuth("/auth/find-password", {
+      const response = await fetchWithoutAuth("/find-password", {
         method: "POST",
         body: JSON.stringify(formData),
       });

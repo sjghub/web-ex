@@ -61,7 +61,7 @@ export default function IdLookupResultPage() {
         return;
       }
 
-      const response = await fetchWithoutAuth("/auth/find-id", {
+      const response = await fetchWithoutAuth("/find-id", {
         method: "POST",
         body: JSON.stringify({ personalAuthKey }),
       });
