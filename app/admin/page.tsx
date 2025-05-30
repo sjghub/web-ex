@@ -12,7 +12,7 @@ interface Trend {
   transactionCount: number;
 }
 
-export const TransactionChart = () => {
+const TransactionChart = () => {
   const [trendData, setTrendData] = useState<Trend[]>([]);
 
   useEffect(() => {
