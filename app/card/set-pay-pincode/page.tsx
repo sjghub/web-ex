@@ -2,9 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import PincodeForm from "@/components/ui/pincode-form";
+import { fetchWithAuth } from "@/lib/api-fetch";
+import { useRef } from "react";
 
-export default function ChangePincodePage() {
+export default function SetPincodePage() {
   const router = useRouter();
+  const pincodeFormRef = useRef<{ resetPassword: () => void }>(null);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -12,31 +15,36 @@ export default function ChangePincodePage() {
         title="간편 결제 비밀번호 설정"
         description="간편 결제 시 사용할 비밀번호를 입력해주세요."
         onBack={() => router.push("/card/register")}
-        onComplete={async () => {
-          //대표카드가 있는지 여부를 확인하고 분기별로 router를 다르게 설정(백엔드 API연동시)
-          /*
+        onComplete={async (paymentPinCode) => {
           try {
-            const res = await fetch("/api/cards");
-            const data = await res.json();
-            const hasRepresent = data.some((card: { isRepresent: boolean }) => card.isRepresent);
-        
-            // 여기에 실제 핀 저장 API 호출이 필요하면 추가
-            await fetch("/api/cards/pincode", {
+            const response = await fetchWithAuth("/user/payment-pin-code", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ pincode }),
+              body: JSON.stringify({ paymentPinCode }),
             });
-        
-            if (hasRepresent) {
-              router.push("/card/change-represent-card");
-            } else {
-              router.push("/card/set-represent-card");
+
+            if (!response.ok) {
+              alert("비밀번호 설정에 실패했습니다.");
+              pincodeFormRef.current?.resetPassword();
+              return;
             }
-          } catch (err) {
-            console.error("대표카드 확인 또는 저장 실패", err);
+
+            // 대표카드가 있는지 확인
+            // const cardsResponse = await fetchWithAuth("/cards");
+            // const cardsData = await cardsResponse.json();
+            // const hasRepresent = cardsData.some(
+            //   (card: { isRepresent: boolean }) => card.isRepresent
+            // );
+
+            // if (hasRepresent) {
+            //   router.push("/card/change-represent-card");
+            // } else {
+            //   router.push("/card/set-represent-card");
+            // }
+          } catch (error) {
+            console.error("PIN 코드 설정 실패:", error);
+            alert("PIN 코드 설정 중 오류가 발생했습니다.");
+            pincodeFormRef.current?.resetPassword();
           }
-          */
-          router.push("/card/set-represent-card");
         }}
         validateHasPincode={true}
       />

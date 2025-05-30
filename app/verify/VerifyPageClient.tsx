@@ -16,16 +16,15 @@ export default function VerifyPageClient() {
       return;
     }
 
-    if (type === "signup") {
-      if (sessionStorage.getItem("agreeTerms") !== "true") {
-        router.replace("/signup/terms");
-      }
+    if (type === "signup" && sessionStorage.getItem("agreeTerms") !== "true") {
+      router.replace("/signup/terms");
     }
 
-    if (type === "pwInquiry") {
-      if (sessionStorage.getItem("pwInquiryName") !== "true") {
-        router.replace("/pwInquiry");
-      }
+    if (
+      type === "pwInquiry" &&
+      sessionStorage.getItem("pwInquiryName") !== "true"
+    ) {
+      router.replace("/pwInquiry");
     }
   }, [type, router]);
 

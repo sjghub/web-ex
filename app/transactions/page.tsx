@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // import { useRouter } from "next/navigation";
 import { CreditCard, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,22 +27,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
-interface Transaction {
-  id: number;
-  store: string;
-  amount: string;
-  date: string;
-  cardName: string;
-  category: string;
-  benefit?: string;
-}
+import {
+  fetchRecentTransactions,
+  PaymentHistoryResponse,
+} from "@/lib/api/fetchRecentTransactions";
 
 export default function TransactionsPage() {
   // const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
+    useState<PaymentHistoryResponse | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   type DateRangeType = "all" | "1week" | "1month" | "3months" | "custom";
@@ -53,119 +47,12 @@ export default function TransactionsPage() {
   type SortOptionType = "recent" | "oldest" | "amount-high" | "amount-low";
   const [sortOption, setSortOption] = useState<SortOptionType>("recent");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [totalPages, setTotalPages] = useState(1);
+  const [transactions, setTransactions] = useState<PaymentHistoryResponse[]>(
+    [],
+  );
 
-  // 결제 내역 목록 (예시)
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      store: "스타벅스 강남점",
-      amount: "5,800",
-      date: "2025-05-01 09:33",
-      cardName: "현대카드 M Black",
-      category: "카페",
-      benefit: "10% 청구 할인 적용",
-    },
-    {
-      id: 2,
-      store: "무신사",
-      amount: "58,000",
-      date: "2025-04-25 14:33",
-      cardName: "카드의정석 오하CHECK",
-      category: "쇼핑",
-      benefit: "5% 적립 적용",
-    },
-    {
-      id: 3,
-      store: "CGV 용산아이파크몰",
-      amount: "15,000",
-      date: "2025-04-20 18:45",
-      cardName: "카드의정석 오하CHECK",
-      category: "영화",
-      benefit: "3,000원 할인 적용",
-    },
-    {
-      id: 4,
-      store: "배달의민족",
-      amount: "23,500",
-      date: "2025-04-18 19:22",
-      cardName: "삼성카드 taptap 0",
-      category: "배달",
-      benefit: "10% 할인 적용",
-    },
-    {
-      id: 5,
-      store: "넷플릭스",
-      amount: "17,000",
-      date: "2025-04-15 00:00",
-      cardName: "삼성카드 taptap 0",
-      category: "구독",
-      benefit: "10% 할인 적용",
-    },
-    {
-      id: 6,
-      store: "스타벅스 홍대점",
-      amount: "8,500",
-      date: "2025-04-12 15:10",
-      cardName: "현대카드 M Black",
-      category: "카페",
-      benefit: "10% 청구 할인 적용",
-    },
-    {
-      id: 7,
-      store: "교보문고",
-      amount: "32,400",
-      date: "2025-04-10 13:25",
-      cardName: "KB국민 My WE:SH 카드",
-      category: "쇼핑",
-      benefit: "5% 할인 적용",
-    },
-    {
-      id: 8,
-      store: "요기요",
-      amount: "18,900",
-      date: "2025-04-05 20:15",
-      cardName: "삼성카드 taptap 0",
-      category: "배달",
-      benefit: "10% 할인 적용",
-    },
-    {
-      id: 9,
-      store: "올리브영",
-      amount: "45,600",
-      date: "2025-04-03 16:40",
-      cardName: "카드의정석 EVERY DISCOUNT",
-      category: "쇼핑",
-      benefit: "5% 할인 적용",
-    },
-    {
-      id: 10,
-      store: "지하철",
-      amount: "1,350",
-      date: "2025-04-01 08:20",
-      cardName: "카드의정석 EVERY DISCOUNT",
-      category: "교통",
-      benefit: "10% 할인 적용",
-    },
-    {
-      id: 11,
-      store: "스타벅스 삼성점",
-      amount: "6,300",
-      date: "2025-03-28 10:45",
-      cardName: "현대카드 M Black",
-      category: "카페",
-      benefit: "10% 청구 할인 적용",
-    },
-    {
-      id: 12,
-      store: "쿠팡",
-      amount: "67,800",
-      date: "2025-03-25 11:30",
-      cardName: "KB국민 My WE:SH 카드",
-      category: "쇼핑",
-      benefit: "5% 할인 적용",
-    },
-  ];
+  const itemsPerPage = 5;
 
   // 카드 목록 (필터용)
   const cards = [
@@ -177,72 +64,55 @@ export default function TransactionsPage() {
     { id: "mywish", name: "KB국민 My WE:SH 카드" },
   ];
 
-  // 카테고리 목록 (필터용)
-  // const categories = [
-  //   { id: "all", name: "전체 카테고리" },
-  //   { id: "cafe", name: "카페" },
-  //   { id: "shopping", name: "쇼핑" },
-  //   { id: "movie", name: "영화" },
-  //   { id: "delivery", name: "배달" },
-  //   { id: "subscription", name: "구독" },
-  //   { id: "transport", name: "교통" },
-  // ];
+  // const filteredTransactions = transactions.filter((transaction) => {
+  //   const matchesSearch =
+  //     transaction.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     transaction.cardName.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.store.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.cardName.toLowerCase().includes(searchQuery.toLowerCase());
+  //   const matchesCard =
+  //     cardFilter === "all" || transaction.cardName.includes(cardFilter);
 
-    const matchesCard =
-      cardFilter === "all" || transaction.cardName.includes(cardFilter);
+  //   let matchesDate = true;
+  //   const transactionDate = new Date(transaction.createdAt);
+  //   const now = new Date();
 
-    let matchesDate = true;
-    const transactionDate = new Date(transaction.date);
-    const now = new Date();
+  //   if (dateRange === "1week") {
+  //     const oneWeekAgo = new Date();
+  //     oneWeekAgo.setDate(now.getDate() - 7);
+  //     matchesDate = transactionDate >= oneWeekAgo;
+  //   } else if (dateRange === "1month") {
+  //     const oneMonthAgo = new Date();
+  //     oneMonthAgo.setMonth(now.getMonth() - 1);
+  //     matchesDate = transactionDate >= oneMonthAgo;
+  //   } else if (dateRange === "3months") {
+  //     const threeMonthsAgo = new Date();
+  //     threeMonthsAgo.setMonth(now.getMonth() - 3);
+  //     matchesDate = transactionDate >= threeMonthsAgo;
+  //   }
 
-    if (dateRange === "1week") {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(now.getDate() - 7);
-      matchesDate = transactionDate >= oneWeekAgo;
-    } else if (dateRange === "1month") {
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      matchesDate = transactionDate >= oneMonthAgo;
-    } else if (dateRange === "3months") {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(now.getMonth() - 3);
-      matchesDate = transactionDate >= threeMonthsAgo;
-    }
+  //   return matchesSearch && matchesCard && matchesDate;
+  // });
 
-    return matchesSearch && matchesCard && matchesDate;
-  });
+  // const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+  //   if (sortOption === "recent") {
+  //     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  //   } else if (sortOption === "oldest") {
+  //     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  //   } else if (sortOption === "amount-high") {
+  //     return (
+  //       Number.parseInt(b.transactionAmount.toString.replace(/,/g, "")) -
+  //       Number.parseInt(a.transactionAmount.toString.replace(/,/g, ""))
+  //     );
+  //   } else if (sortOption === "amount-low") {
+  //     return (
+  //       Number.parseInt(a.transactionAmount.toString.replace(/,/g, "")) -
+  //       Number.parseInt(b.transactionAmount.toString.replace(/,/g, ""))
+  //     );
+  //   }
+  //   return 0;
+  // });
 
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    if (sortOption === "recent") {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    } else if (sortOption === "oldest") {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    } else if (sortOption === "amount-high") {
-      return (
-        Number.parseInt(b.amount.replace(/,/g, "")) -
-        Number.parseInt(a.amount.replace(/,/g, ""))
-      );
-    } else if (sortOption === "amount-low") {
-      return (
-        Number.parseInt(a.amount.replace(/,/g, "")) -
-        Number.parseInt(b.amount.replace(/,/g, ""))
-      );
-    }
-    return 0;
-  });
-
-  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
-  const paginatedTransactions = sortedTransactions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  const handleViewTransactionDetail = (transaction: Transaction) => {
+  const handleViewTransactionDetail = (transaction: PaymentHistoryResponse) => {
     setSelectedTransaction(transaction);
     setShowDetailDialog(true);
   };
@@ -258,6 +128,20 @@ export default function TransactionsPage() {
       hour12: true,
     }).format(date);
   };
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        const result = await fetchRecentTransactions(currentPage, itemsPerPage);
+        setTransactions(result.content);
+        setTotalPages(result.totalPages);
+      } catch (error) {
+        console.error("결제 내역 로드 실패:", error);
+      }
+    };
+
+    loadTransactions();
+  }, [currentPage]);
 
   return (
     <div className="min-h-screen">
@@ -452,24 +336,36 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {paginatedTransactions.length > 0 ? (
+          {totalPages > 0 ? (
             <Card className="py-0">
               <CardContent className="p-0">
                 <div className="divide-y">
-                  {paginatedTransactions.map((transaction) => (
+                  {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
                       className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleViewTransactionDetail(transaction)}
                     >
                       <div>
-                        <p className="font-medium">{transaction.store}</p>
+                        <p className="font-medium">{transaction.shopName}</p>
                         <p className="text-sm text-gray-500">
-                          {transaction.date}
+                          {new Date(transaction.createdAt).toLocaleString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            },
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">{transaction.amount}원</p>
+                        <p className="font-bold">
+                          {transaction.transactionAmount}원
+                        </p>
                         <p className="text-sm text-gray-500">
                           {transaction.cardName}
                         </p>
@@ -545,18 +441,18 @@ export default function TransactionsPage() {
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="font-bold text-lg">
-                        {selectedTransaction.store}
+                        {selectedTransaction.shopName}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        {formatDate(selectedTransaction.date)}
+                        {formatDate(selectedTransaction.createdAt)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-lg">
-                        {selectedTransaction.amount}원
+                        {selectedTransaction.transactionAmount}원
                       </p>
                       <p className="text-xs text-green-600">
-                        {selectedTransaction.benefit}
+                        {selectedTransaction.applicationBenefit}
                       </p>
                     </div>
                   </div>
@@ -569,23 +465,20 @@ export default function TransactionsPage() {
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    {/* 카테고리 - 추후에 API에 카테고리 추가 후 연결하기 */}
+                    {/* <div>
                       <p className="text-sm text-gray-500">카테고리</p>
                       <p className="font-medium">
                         {selectedTransaction.category}
                       </p>
-                    </div>
+                    </div> */}
                     <div>
                       <p className="text-sm text-gray-500">결제 방식</p>
                       <p className="font-medium">일시불</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">승인 번호</p>
-                      <p className="font-medium">
-                        {Math.floor(Math.random() * 1000000)
-                          .toString()
-                          .padStart(6, "0")}
-                      </p>
+                      <p className="font-medium">{selectedTransaction.id}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">상태</p>

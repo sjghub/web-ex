@@ -114,7 +114,7 @@ export default function UserInfoPage() {
     }
 
     try {
-      const response = await fetchWithoutAuth("/auth/signup", {
+      const response = await fetchWithoutAuth("/auth/signup/verify", {
         method: "POST",
         body: JSON.stringify({
           username: formData.username,
@@ -132,9 +132,21 @@ export default function UserInfoPage() {
         return;
       }
 
-      setShowDialog(true);
-      sessionStorage.clear();
-      setTimeout(() => router.push("/login"), 2000);
+      // 회원가입 정보를 세션 스토리지에 저장
+      sessionStorage.setItem(
+        "signupInfo",
+        JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          birthdate: formData.birthday,
+          phone: formData.phone,
+          personalAuthKey: formData.personalAuthKey,
+        }),
+      );
+
+      router.push("/pincode");
     } catch (err) {
       console.error(err);
       setErrorMessage(DEFAULT_ERROR_MSG);
@@ -279,7 +291,7 @@ export default function UserInfoPage() {
               </div>
 
               <Button type="submit" className="w-full mt-6 bg-black text-white">
-                회원가입
+                다음
               </Button>
             </form>
           </CardContent>

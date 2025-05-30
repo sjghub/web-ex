@@ -11,6 +11,10 @@ import { useCardScroll } from "./page-script";
 import { fetchWithAuth } from "@/lib/api-fetch";
 import { HeaderNavBar } from "@/components/header-nav-bar";
 import Footer from "@/components/footer-bar";
+import {
+  fetchRecentTransactions,
+  PaymentHistoryResponse,
+} from "@/lib/api/fetchRecentTransactions";
 
 export default function DashboardPage() {
   const [userBenefits, setUserBenefits] = useState<BenefitResponse | null>(
@@ -96,37 +100,23 @@ export default function DashboardPage() {
     (a, b) => (b.isDefaultCard ? 1 : 0) - (a.isDefaultCard ? 1 : 0),
   );
 
-  // 최근 결제 내역 (예시)
-  const recentTransactions = [
-    {
-      id: 1,
-      store: "무신사",
-      amount: "58,000",
-      date: "2025-04-25 14:33",
-      cardName: "카드의정석 오하CHECK",
-    },
-    {
-      id: 2,
-      store: "무신사",
-      amount: "58,000",
-      date: "2025-04-25 14:33",
-      cardName: "카드의정석 오하CHECK",
-    },
-    {
-      id: 3,
-      store: "무신사",
-      amount: "58,000",
-      date: "2025-04-25 14:33",
-      cardName: "카드의정석 오하CHECK",
-    },
-    {
-      id: 4,
-      store: "무신사",
-      amount: "58,000",
-      date: "2025-04-25 14:33",
-      cardName: "카드의정석 오하CHECK",
-    },
-  ];
+  const [transactions, setTransactions] = useState<PaymentHistoryResponse[]>(
+    [],
+  );
+  const itemsPerPage = 4;
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        const result = await fetchRecentTransactions(1, itemsPerPage);
+        setTransactions(result.content);
+      } catch (error) {
+        console.error("거래 내역을 불러오는데 실패했습니다:", error);
+      }
+    };
+
+    loadTransactions();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -217,9 +207,9 @@ export default function DashboardPage() {
         </div>
 
         {/* 내 카드 + 최근 결제 내역 (가로 배치) */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
           {/* 내 카드 */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">내 카드</h2>
               <Button
@@ -231,8 +221,7 @@ export default function DashboardPage() {
                 전체 보기
               </Button>
             </div>
-
-            <div className="relative">
+            <div className="relative h-full flex-1 flex flex-col">
               {/* Scroll buttons */}
               <button
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 transition-colors duration-200 scroll-button-left"
@@ -249,7 +238,7 @@ export default function DashboardPage() {
               </button>
 
               {/* Scrollable container */}
-              <div className="cards-scroll-container overflow-x-auto pb-4 hide-scrollbar">
+              <div className="cards-scroll-container overflow-x-auto pb-4 hide-scrollbar h-full flex-1">
                 <div className="inline-flex gap-4 px-8">
                   {sortedCards.map((card) => (
                     <div
@@ -260,7 +249,11 @@ export default function DashboardPage() {
                         {/* 앞면 */}
                         <div className="absolute inset-0 backface-hidden">
                           <Image
-                            src={card.imageUrl || "/placeholder.png"}
+                            src={
+                              card.imageUrl?.startsWith("http")
+                                ? card.imageUrl
+                                : "/placeholder.png"
+                            }
                             alt={card.cardName}
                             fill
                             className="rounded-lg shadow-sm object-cover"
@@ -275,7 +268,11 @@ export default function DashboardPage() {
                         {/* 뒷면 */}
                         <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-lg overflow-hidden">
                           <Image
-                            src={card.imageUrl || "/placeholder.png"}
+                            src={
+                              card.imageUrl?.startsWith("http")
+                                ? card.imageUrl
+                                : "/placeholder.png"
+                            }
                             alt={card.cardName}
                             fill
                             className="object-cover"
@@ -316,7 +313,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 최근 결제 내역 */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">최근 결제 내역</h2>
               <Button
@@ -328,24 +325,37 @@ export default function DashboardPage() {
                 전체 보기
               </Button>
             </div>
-
-            <Card className="p-0">
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {recentTransactions.map((transaction) => (
+            <Card className="h-full flex-1 flex flex-col overflow-hidden">
+              <CardContent className="p-0 flex-1 flex flex-col h-full">
+                <div className="divide-y flex-1 flex flex-col h-full overflow-y-auto">
+                  {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between p-4"
+                      className="flex items-center justify-between p-3 flex-shrink-0"
                     >
                       <div>
-                        <p className="font-medium">{transaction.store}</p>
-                        <p className="text-sm text-gray-500">
-                          {transaction.date}
+                        <p className="font-bold text-base">
+                          {transaction.shopName}
+                        </p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {new Date(transaction.createdAt).toLocaleString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            },
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">{transaction.amount}원</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-bold text-lg">
+                          {transaction.transactionAmount.toLocaleString()}원
+                        </p>
+                        <p className="text-gray-400 text-xs mt-1">
                           {transaction.cardName}
                         </p>
                       </div>
