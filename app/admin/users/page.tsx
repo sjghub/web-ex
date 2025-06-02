@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api-fetch";
+import { useDebounce } from "@/lib/debounce";
 
 const USERS_PER_PAGE = 10;
 const STATUS_COLORS = {
@@ -65,9 +66,14 @@ interface PagedResponse {
   totalElements: number;
 }
 
-const fetchUsers = async (page: number): Promise<PagedResponse> => {
+const fetchUsers = async (
+  page: number,
+  status: string,
+  sort: string,
+  search: string,
+): Promise<PagedResponse> => {
   const response = await fetchWithAuth(
-    `/admin/users?page=${page}&size=${USERS_PER_PAGE}`,
+    `/admin/users?page=${page}&size=${USERS_PER_PAGE}&status=${status}&sort=${sort}&search=${search}`,
   );
   const data = await response.json();
   return data.success
@@ -106,11 +112,17 @@ export default function AdminUsersPage() {
     inactiveUsers: 0,
     newUsers: 0,
   });
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     const loadData = async () => {
       const [pageData, statsData] = await Promise.all([
-        fetchUsers(currentPage),
+        fetchUsers(
+          currentPage,
+          selectedFilter,
+          sortOrder,
+          debouncedSearchQuery,
+        ),
         fetchUserStats(),
       ]);
       setUsers(pageData.content);
@@ -118,38 +130,9 @@ export default function AdminUsersPage() {
       setStats(statsData);
     };
     loadData();
-  }, [currentPage]);
+  }, [currentPage, selectedFilter, sortOrder, debouncedSearchQuery]);
 
-  const filteredUsers = users.filter((user) => {
-    if (selectedFilter === "활성" && user.status !== "ACTIVE") return false;
-    if (selectedFilter === "비활성" && user.status !== "INACTIVE") return false;
-    if (selectedFilter === "임시" && user.status !== "TEMPORARY") return false;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        user.userId.toString().includes(query)
-      );
-    }
-    return true;
-  });
-
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    switch (sortOrder) {
-      case "이름순":
-        return a.name.localeCompare(b.name);
-      case "가입일순":
-        return b.createdAt.localeCompare(a.createdAt);
-      case "상태순":
-        return a.status.localeCompare(b.status);
-      default:
-        return 0;
-    }
-  });
-
-  const paginatedUsers = sortedUsers;
+  const paginatedUsers = users;
 
   const handleViewUserDetail = (user: User) => {
     setSelectedUser(user);
@@ -239,7 +222,10 @@ export default function AdminUsersPage() {
           <div className="mb-6">
             <Tabs
               defaultValue="전체"
-              onValueChange={setSelectedFilter}
+              onValueChange={(v) => {
+                setSelectedFilter(v);
+                setCurrentPage(1);
+              }}
               className="w-full"
             >
               <TabsList className="grid grid-cols-4 max-w-md gap-x-2">
@@ -300,7 +286,10 @@ export default function AdminUsersPage() {
                     placeholder="사용자 검색..."
                     className="pl-10 w-64"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
                   />
                 </div>
                 <Select value={sortOrder} onValueChange={setSortOrder}>

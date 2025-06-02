@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { useRouter } from "next/navigation";
-import { CreditCard, Filter, Search } from "lucide-react";
+import { CreditCard, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,8 +32,6 @@ import {
 } from "@/lib/api/fetchRecentTransactions";
 
 export default function TransactionsPage() {
-  // const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTransaction, setSelectedTransaction] =
     useState<PaymentHistoryResponse | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
@@ -43,7 +40,6 @@ export default function TransactionsPage() {
   const [dateRange, setDateRange] = useState<DateRangeType>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [cardFilter, setCardFilter] = useState<string>("all");
   type SortOptionType = "recent" | "oldest" | "amount-high" | "amount-low";
   const [sortOption, setSortOption] = useState<SortOptionType>("recent");
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,65 +48,7 @@ export default function TransactionsPage() {
     [],
   );
 
-  const itemsPerPage = 5;
-
-  // 카드 목록 (필터용)
-  const cards = [
-    { id: "all", name: "전체 카드" },
-    { id: "hyundaiblack", name: "현대카드 M Black" },
-    { id: "everydiscount", name: "카드의정석 EVERY DISCOUNT" },
-    { id: "taptap0", name: "삼성카드 taptap 0" },
-    { id: "ohacheck", name: "카드의정석 오하CHECK" },
-    { id: "mywish", name: "KB국민 My WE:SH 카드" },
-  ];
-
-  // const filteredTransactions = transactions.filter((transaction) => {
-  //   const matchesSearch =
-  //     transaction.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     transaction.cardName.toLowerCase().includes(searchQuery.toLowerCase());
-
-  //   const matchesCard =
-  //     cardFilter === "all" || transaction.cardName.includes(cardFilter);
-
-  //   let matchesDate = true;
-  //   const transactionDate = new Date(transaction.createdAt);
-  //   const now = new Date();
-
-  //   if (dateRange === "1week") {
-  //     const oneWeekAgo = new Date();
-  //     oneWeekAgo.setDate(now.getDate() - 7);
-  //     matchesDate = transactionDate >= oneWeekAgo;
-  //   } else if (dateRange === "1month") {
-  //     const oneMonthAgo = new Date();
-  //     oneMonthAgo.setMonth(now.getMonth() - 1);
-  //     matchesDate = transactionDate >= oneMonthAgo;
-  //   } else if (dateRange === "3months") {
-  //     const threeMonthsAgo = new Date();
-  //     threeMonthsAgo.setMonth(now.getMonth() - 3);
-  //     matchesDate = transactionDate >= threeMonthsAgo;
-  //   }
-
-  //   return matchesSearch && matchesCard && matchesDate;
-  // });
-
-  // const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-  //   if (sortOption === "recent") {
-  //     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  //   } else if (sortOption === "oldest") {
-  //     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  //   } else if (sortOption === "amount-high") {
-  //     return (
-  //       Number.parseInt(b.transactionAmount.toString.replace(/,/g, "")) -
-  //       Number.parseInt(a.transactionAmount.toString.replace(/,/g, ""))
-  //     );
-  //   } else if (sortOption === "amount-low") {
-  //     return (
-  //       Number.parseInt(a.transactionAmount.toString.replace(/,/g, "")) -
-  //       Number.parseInt(b.transactionAmount.toString.replace(/,/g, ""))
-  //     );
-  //   }
-  //   return 0;
-  // });
+  const itemsPerPage = 10;
 
   const handleViewTransactionDetail = (transaction: PaymentHistoryResponse) => {
     setSelectedTransaction(transaction);
@@ -132,7 +70,14 @@ export default function TransactionsPage() {
   useEffect(() => {
     const loadTransactions = async () => {
       try {
-        const result = await fetchRecentTransactions(currentPage, itemsPerPage);
+        const result = await fetchRecentTransactions(
+          currentPage,
+          itemsPerPage,
+          sortOption,
+          dateRange,
+          startDate,
+          endDate,
+        );
         setTransactions(result.content);
         setTotalPages(result.totalPages);
       } catch (error) {
@@ -141,7 +86,7 @@ export default function TransactionsPage() {
     };
 
     loadTransactions();
-  }, [currentPage]);
+  }, [currentPage, sortOption, dateRange, startDate, endDate]);
 
   return (
     <div className="min-h-screen">
@@ -154,19 +99,7 @@ export default function TransactionsPage() {
           </p>
 
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="결제처 또는 카드 검색"
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ml-auto">
               <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -244,39 +177,12 @@ export default function TransactionsPage() {
                       </div>
                     )}
 
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">카드</h3>
-                      <Select
-                        value={cardFilter}
-                        onValueChange={(value: string) => {
-                          setCardFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="카드 선택" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                          {cards.map((card) => (
-                            <SelectItem
-                              key={card.id}
-                              value={card.id}
-                              className="hover:bg-gray-100 cursor-pointer"
-                            >
-                              {card.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div className="flex justify-end gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
                           setDateRange("all");
-                          setCardFilter("all");
                           setStartDate("");
                           setEndDate("");
                           setCurrentPage(1);

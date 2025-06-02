@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { fetchMerchants, Merchant } from "@/lib/api/fetchMerchants";
 import { fetchMerchantStats } from "@/lib/api/fetchMerchantStats";
+import { useDebounce } from "@/lib/debounce";
 
 export default function AdminMerchantsPage() {
   const router = useRouter();
@@ -28,11 +29,18 @@ export default function AdminMerchantsPage() {
   const [activeMerchantCount, setActiveMerchantCount] = useState(0);
   const [transactionCount, setTransactionCount] = useState(0);
   const itemsPerPage = 5;
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     const loadMerchants = async () => {
       try {
-        const result = await fetchMerchants(currentPage, itemsPerPage);
+        const result = await fetchMerchants(
+          currentPage,
+          itemsPerPage,
+          statusFilter,
+          sortOrder,
+          debouncedSearchQuery,
+        );
         setMerchants(result.content);
         setTotalPages(result.totalPages);
       } catch (e) {
@@ -40,7 +48,7 @@ export default function AdminMerchantsPage() {
       }
     };
     loadMerchants();
-  }, [currentPage]);
+  }, [currentPage, statusFilter, sortOrder, debouncedSearchQuery]);
   useEffect(() => {
     const loadMerchantsStats = async () => {
       try {
@@ -54,36 +62,6 @@ export default function AdminMerchantsPage() {
     };
     loadMerchantsStats();
   }, []);
-
-  const filteredMerchants = merchants.filter((merchant) => {
-    if (statusFilter === "활성" && merchant.status !== "활성") return false;
-    if (statusFilter === "비활성" && merchant.status !== "비활성") return false;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        merchant.name.toLowerCase().includes(query) ||
-        merchant.category.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
-  });
-
-  const sortedMerchants = [...filteredMerchants].sort((a, b) => {
-    switch (sortOrder) {
-      case "이름순":
-        return a.name.localeCompare(b.name);
-      case "거래건수순":
-        return b.transactions - a.transactions;
-      case "금액순":
-        return b.amount - a.amount;
-      default:
-        return a.id - b.id;
-    }
-  });
-
-  const paginatedMerchants = sortedMerchants;
 
   const handleViewMerchantDetail = (merchant: Merchant) => {
     router.push(`/admin/merchants/${merchant.id}`);
@@ -164,13 +142,19 @@ export default function AdminMerchantsPage() {
                       placeholder="가맹점 검색..."
                       className="pl-10 w-64"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
                     />
                   </div>
                   <div className="flex gap-2">
                     <Select
                       value={statusFilter}
-                      onValueChange={setStatusFilter}
+                      onValueChange={(v) => {
+                        setStatusFilter(v);
+                        setCurrentPage(1); // 페이지 초기화
+                      }}
                     >
                       <SelectTrigger className="w-[140px] cursor-pointer hover:bg-gray-100">
                         <SelectValue placeholder="모든 상태" />
@@ -197,7 +181,13 @@ export default function AdminMerchantsPage() {
                       </SelectContent>
                     </Select>
 
-                    <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <Select
+                      value={sortOrder}
+                      onValueChange={(v) => {
+                        setSortOrder(v);
+                        setCurrentPage(1); // 페이지 초기화
+                      }}
+                    >
                       <SelectTrigger className="w-[140px] cursor-pointer hover:bg-gray-100">
                         <SelectValue placeholder="정렬 방식" />
                       </SelectTrigger>
@@ -253,7 +243,7 @@ export default function AdminMerchantsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedMerchants.map((merchant) => (
+                    {merchants.map((merchant) => (
                       <tr
                         key={merchant.id}
                         className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
@@ -264,7 +254,9 @@ export default function AdminMerchantsPage() {
                         <td className="px-6 py-4">
                           {merchant.transactions.toLocaleString()}건
                         </td>
-                        <td className="px-6 py-4">{merchant.amount}원</td>
+                        <td className="px-6 py-4">
+                          {merchant.amount.toLocaleString()}원
+                        </td>
                         <td className="px-6 py-4 w-[120px] text-center">
                           <span
                             className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
@@ -318,7 +310,7 @@ export default function AdminMerchantsPage() {
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || totalPages === 0}
                 >
                   다음
                 </Button>

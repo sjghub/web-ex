@@ -71,6 +71,34 @@
   }
 }
 
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-20deg);
+  }
+  75% {
+    transform: rotate(-20deg);
+  }
+}
+
+@keyframes progress {
+  0% {
+    width: 0%;
+    left: 0;
+  }
+  50% {
+    width: 100%;
+    left: 0;
+  }
+  100% {
+    width: 100%;
+    left: 100%;
+  }
+}
+
 @layer utilities {
   .perspective {
     perspective: 1000px;
@@ -103,5 +131,13 @@
   .animate-fade-in {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .animate-wiggle {
+    animation: wiggle 1.5s infinite;
+  }
+
+  .animate-progress {
+    animation: progress 1.5s infinite;
   }
 }

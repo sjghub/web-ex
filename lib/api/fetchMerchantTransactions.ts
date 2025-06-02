@@ -37,9 +37,12 @@ export interface PaginatedTransactionData {
 export const fetchMerchantTransactions = async (
   page = 1,
   size = 5,
+  statusFilter = "모든 상태",
+  sortOrder = "최신순",
+  searchQuery = "",
 ): Promise<PaginatedTransactionData> => {
   const response = await fetchWithAuth(
-    `/admin/merchants/payments?page=${page}&size=${size}`,
+    `/admin/merchants/payments?page=${page}&size=${size}&status=${statusFilter}&sort=${sortOrder}&search=${searchQuery}`,
   );
 
   const data = await response.json();

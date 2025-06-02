@@ -16,7 +16,7 @@ const AUTH_REQUIRED_PATHS = [
 const ADMIN_REQUIRED_PATHS = ["/admin"];
 
 // 공개 경로 설정 (인증이 필요하지 않은 경로)
-const PUBLIC_PATHS = ["/", "/login", "/signup/terms"];
+const PUBLIC_PATHS = ["/login", "/signup/terms"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,6 +24,14 @@ export function middleware(request: NextRequest) {
 
   // API 요청인 경우 백엔드에서 처리하도록 함
   if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // 루트 페이지 접속 시 로그인 상태 체크
+  if (pathname === "/") {
+    if (accessToken) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
     return NextResponse.next();
   }
 

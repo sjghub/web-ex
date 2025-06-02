@@ -20,8 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { fetchWithAuth } from "@/lib/api-fetch";
+import Footer from "@/components/footer-bar";
 
-const DEFAULT_PROFILE_IMAGE = "/white_bg.png";
+const DEFAULT_PROFILE_IMAGE = "/profile-placeholder.png";
 
 export default function MyPage() {
   const router = useRouter();
@@ -115,6 +116,7 @@ export default function MyPage() {
   const handleNotificationChange = (key: keyof typeof notifications) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -147,11 +149,12 @@ export default function MyPage() {
       setIsUploading(false);
     }
   };
+
   return (
     <div className="min-h-screen">
       <HeaderNavBar />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 mb-16">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold mb-2">내 정보</h1>
           <p className="text-gray-500 mb-6">
@@ -169,7 +172,7 @@ export default function MyPage() {
                       <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
                         {/* 이미지 */}
                         <Image
-                          src={user.profileImage}
+                          src={user.profileImage || DEFAULT_PROFILE_IMAGE}
                           alt="프로필 이미지"
                           width={96}
                           height={96}
@@ -178,10 +181,14 @@ export default function MyPage() {
 
                         {/* 업로드 중 오버레이 */}
                         {isUploading && (
-                          <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-10">
-                            <div className="text-white text-sm animate-pulse">
-                              업로드 중...
-                            </div>
+                          <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-10 rounded-full overflow-hidden">
+                            <Image
+                              src={DEFAULT_PROFILE_IMAGE}
+                              alt="로딩 중"
+                              width={96}
+                              height={96}
+                              className="object-cover animate-pulse"
+                            />
                           </div>
                         )}
 
@@ -513,6 +520,10 @@ export default function MyPage() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
+
       {/* 프로필 수정 확인 다이얼로그 */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="bg-white" showCloseButton={false}>

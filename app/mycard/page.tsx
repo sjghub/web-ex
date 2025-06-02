@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api-fetch";
+import Footer from "@/components/footer-bar";
 
 interface CardBenefit {
   content: string;
@@ -52,6 +53,27 @@ interface CardResponse {
   imageUrl?: string;
 }
 
+// 스켈레톤 카드 컴포넌트
+const CardSkeleton = () => (
+  <Card className="overflow-hidden p-0 pb-6 animate-pulse">
+    <div className="relative aspect-[1.58/1] bg-gray-200" />
+    <CardContent className="px-4">
+      <div className="flex justify-between items-start mb-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-24" />
+          <div className="h-3 bg-gray-200 rounded w-32" />
+        </div>
+        <div className="h-8 w-8 bg-gray-200 rounded" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-full" />
+        <div className="h-3 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-1/2" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
 export default function MyCardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,11 +81,14 @@ export default function MyCardPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [sortOption, setSortOption] = useState("default");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // 내 카드 목록 (API 연동)
   const [myCards, setMyCards] = useState<CardResponse[]>([]);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchWithAuth("/card/my", {
       method: "GET",
     })
@@ -72,6 +97,9 @@ export default function MyCardPage() {
         if (data.success && Array.isArray(data.response)) {
           setMyCards(data.response);
         }
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -111,11 +139,26 @@ export default function MyCardPage() {
   };
 
   // 카드 삭제
-  const handleDeleteCard = () => {
+  const handleDeleteCard = async () => {
     if (selectedCard) {
-      setMyCards(myCards.filter((card) => card.id !== selectedCard.id));
-      setShowDeleteDialog(false);
-      setSelectedCard(null);
+      try {
+        const res = await fetchWithAuth(`/card/${selectedCard.id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          setMyCards(myCards.filter((card) => card.id !== selectedCard.id));
+          setShowDeleteDialog(false);
+          setSelectedCard(null);
+        } else {
+          setShowDeleteDialog(false);
+          setErrorMessage(data.message || "카드 삭제에 실패했습니다.");
+        }
+      } catch {
+        setShowDeleteDialog(false);
+        setErrorMessage("카드 삭제 중 오류가 발생했습니다.");
+      }
     }
   };
 
@@ -126,12 +169,12 @@ export default function MyCardPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* 상단 네비게이션 바 */}
       <HeaderNavBar />
 
       {/* 메인 콘텐츠 */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 mb-24 flex-grow">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold mb-2">내 카드</h1>
           <p className="text-gray-500 mb-6">
@@ -180,7 +223,13 @@ export default function MyCardPage() {
           </div>
 
           {/* 카드 목록 */}
-          {sortedCards.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, index) => (
+                <CardSkeleton key={index} />
+              ))}
+            </div>
+          ) : sortedCards.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedCards.map((card) => (
                 <Card key={card.id} className="overflow-hidden p-0 pb-6">
@@ -275,14 +324,14 @@ export default function MyCardPage() {
               <p className="text-gray-500 mb-4">
                 카드를 등록하고 혜택을 받아보세요.
               </p>
-              <Button onClick={() => router.push("/card/register")}>
-                <Plus className="mr-2 h-4 w-4" />
-                카드 등록하기
-              </Button>
             </div>
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
+
       {/* 카드 삭제 확인 다이얼로그 */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="bg-white">
@@ -368,6 +417,18 @@ export default function MyCardPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* 에러 다이얼로그 */}
+      <Dialog open={!!errorMessage} onOpenChange={() => setErrorMessage(null)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>오류 발생</DialogTitle>
+            <DialogDescription>{errorMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setErrorMessage(null)}>확인</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
