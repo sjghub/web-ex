@@ -67,7 +67,7 @@ export const fetchWithoutAuth = async (
   };
 
   try {
-    const response = await fetch(`/api/auth${endpoint}`, {
+    const response = await fetch(`/api${endpoint}`, {
       ...options,
       headers,
       credentials: "include",
