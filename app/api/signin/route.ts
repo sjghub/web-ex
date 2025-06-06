@@ -1,14 +1,32 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const res = await fetch("https://internal-alb.example.com/auth/api/signin", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+    const res = await fetch(
+      "https://internal-alb.example.com/auth/api/signin",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
 
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+    const contentType = res.headers.get("content-type");
+
+    const data = contentType?.includes("application/json")
+      ? await res.json()
+      : await res.text(); // HTML 등일 경우 텍스트로 받기
+    console.log("🔍 raw response:", data);
+    return NextResponse.json({ data }, { status: res.status });
+  } catch (err: any) {
+    console.error("❌ Internal ALB fetch failed:", err);
+    return NextResponse.json(
+      { message: "서버 내부 오류", error: err.message || String(err) },
+      { status: 500 },
+    );
+  }
 }
