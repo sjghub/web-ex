@@ -29,7 +29,7 @@ export const fetchWithAuth = async (
   }
 
   try {
-    const response = await fetch(`${baseUrl}${endpoint}`, {
+    const response = await fetch(`/api${endpoint}`, {
       ...fetchOptions,
       headers,
       credentials: "include",
