@@ -1,6 +1,47 @@
+# Dependencies
 node_modules
-*.log
-.env*
-Dockerfile
-.dockerignore
+.pnpm-store
+
+# Next.js build output
+.next
+out
+
+# Testing
+coverage
+.nyc_output
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env*.local
+.env
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Version control
 .git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build files
+*.log
+*.tsbuildinfo
+
+# Cache
+.cache
+.eslintcache
+
+
+.pnpm
+Dockerfile

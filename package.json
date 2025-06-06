@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "format": "prettier --cache --write .",
-    "lint": "next lint",
-    "prepare": "husky"
+    "lint": "next lint"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.8",
