@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
       ? await res.json()
       : await res.text(); // HTML 등일 경우 텍스트로 받기
     console.log("🔍 raw response:", data);
-    return NextResponse.json({ data }, { status: res.status });
-  } catch (err: any) {
+    console.log("🔍 NextResponse.json(data) response:",NextResponse.json(data));
+    return NextResponse.json(data);
+  } catch (err) {
     console.error("❌ Internal ALB fetch failed:", err);
     return NextResponse.json(
       { message: "서버 내부 오류", error: err.message || String(err) },
