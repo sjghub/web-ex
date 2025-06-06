@@ -4,12 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
+    const accessToken = req.headers.get("Authorization"); // 👈 헤더에서 꺼냄
     const res = await fetch(
       "https://internal-alb.example.com/service/api/card",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken && { Authorization: accessToken }), // 👈 그대로 백엔드로 넘김
+        },
         body: JSON.stringify(body),
       },
     );
